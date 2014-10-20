@@ -3,6 +3,30 @@ import yaml
 import yql
 
 
+# YQL query to get current nhl game key
+# select * from fantasysports.games where use_login=1 and game_key in ('nhl')
+GAME_KEY = 341
+
+# League ID found on league page
+#
+LEAGUE_ID = 13222
+
+# Create league key from game key and league id
+#
+LEAGUE_KEY = '%s.l.%s' % (GAME_KEY, LEAGUE_ID)
+
+# Team Key
+#
+# To get stats
+# select * from fantasysports.teams.stats where team_key='341.l.13222.t.10'
+#
+# To get stat_ids
+# select * from fantasysports.leagues.settings where league_key='341.l.13222'
+TEAM_NUMBER = '10'
+TEAM_KEY = '%s.t.%s' % (LEAGUE_KEY, TEAM_NUMBER)
+
+
+
 class FantasyApi(object):
     def __init__(self, key_configuration_file=None):
 
@@ -72,8 +96,7 @@ class FantasyApi(object):
 # make the first token manually.
 #
 #
-
-query = "select * from fantasysports.leagues.standings where league_key='341.l.13222'"
+query = "select * from fantasysports.leagues.standings where league_key='%s'" % LEAGUE_KEY
 
 fapi = FantasyApi()
 response = fapi.make_call(query)
