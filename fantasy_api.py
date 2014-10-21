@@ -26,7 +26,6 @@ TEAM_NUMBER = '10'
 TEAM_KEY = '%s.t.%s' % (LEAGUE_KEY, TEAM_NUMBER)
 
 
-
 class FantasyApi(object):
     def __init__(self, key_configuration_file=None):
 
@@ -49,13 +48,13 @@ class FantasyApi(object):
 
     def _save_yaml_configuration(self):
         with open(self.key_configuration_file, 'w') as f:
-           f.write(yaml.dump(self.configuration, default_flow_style=False))
+            f.write(yaml.dump(self.configuration, default_flow_style=False))
 
     def get_access_token_manually(self):
         y3 = yql.ThreeLegged(self.configuration.get('consumer_key'),
                              self.configuration.get('consumer_secret'))
         request_token, auth_url = y3.get_token_and_auth_url()
-    
+
         print auth_url
         verifier = raw_input('Please enter the PIN shown: ')
 
@@ -69,7 +68,6 @@ class FantasyApi(object):
             token = self.get_access_token_manually()
             self.configuration['access_token'] = token.to_string()
 
-
         return token
 
     def make_call(self, query):
@@ -81,23 +79,60 @@ class FantasyApi(object):
 
         # Run Query
         response = self.y3.execute(query, token=access_token)
-        
+
         # Save configuration
         self._save_yaml_configuration()
-        
+
         # Return results
         return response
 
 
-#
-# This will allow for the extended use of the access token (auto refresh)
-#
-# However, if no token exists, you will still have to
-# make the first token manually.
-#
-#
-query = "select * from fantasysports.leagues.standings where league_key='%s'" % LEAGUE_KEY
+def yql_query(query):
+    fapi = FantasyApi()
+    response = fapi.make_call(query)
+    return response.raw
 
-fapi = FantasyApi()
-response = fapi.make_call(query)
-print response.raw
+
+def get_raw_standings():
+    query = "select * from fantasysports.leagues.standings where league_key='%s'" % LEAGUE_KEY
+    return yql_query(query)
+
+
+def get_raw_stats():
+    query = "select * from fantasysports.teams.stats where team_key='%s'" % TEAM_KEY
+    return yql_query(query)
+
+
+def get_stat_catergories():
+    query = "select * from fantasysports.leagues.settings where league_key='341.l.13222'"
+    catergories = {}
+    response = yql_query(query)
+    for stat in response.get('results')['league']['settings']['stat_categories']['stats']['stat']:
+        stat_id = stat.get('stat_id')
+        stat_name = stat.get('name')
+        catergories[stat_id] = stat_name
+
+    return catergories
+
+
+def get_league_stats_by_team():
+    response = get_raw_standings()
+    catergories = get_stat_catergories()
+    league_stats = {}
+    teams = response['results']['league']['standings']['teams']['team']
+    for team in teams:
+        stats = team['team_stats']['stats']['stat']
+
+        team_stats = {}
+        for stat in stats:
+            team_stats[catergories[stat['stat_id']]] = {'id': stat['stat_id'],
+                                                        'value': stat['value']}
+            league_stats[team['name']] = {'team_id': team['team_id'], 'team_stats': team_stats}
+
+    return league_stats
+
+
+for key, value in get_league_stats_by_team().items():
+    print key
+    print value['team_stats'].keys()
+    print value['team_stats']['Goals']['value']
