@@ -116,10 +116,13 @@ def get_stat_catergories():
 
 
 def get_league_stats_by_team():
-    response = get_raw_standings()
+    
     catergories = get_stat_catergories()
     league_stats = {}
+
+    response = get_raw_standings()
     teams = response['results']['league']['standings']['teams']['team']
+    
     for team in teams:
         stats = team['team_stats']['stats']['stat']
 
